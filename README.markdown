@@ -14,7 +14,17 @@ Contacts provides adapters for:
 First, register your application with the service providers you
 require. Instructions below under "Setting up your accounts".
 
-Now, create a consumer:
+Next, configure your accounts with a .yml file. Refer to
+``spec/config/contacts.yml`` for configuration format
+
+If you are using this as a gem instead of a Rails plugin, make sure
+to add a ``config/initializer/contacts.rb``
+
+    require 'contacts'
+    config = YAML.load_file("#{Rails.root}/config/contacts.yml")
+    Contacts.configure(config[Rails.env])
+
+Now, in your controller, create a consumer:
 
     consumer = Contacts::Google.new
     consumer = Contacts::Yahoo.new
@@ -28,14 +38,21 @@ Now, direct your user to:
     consumer.authentication_url(return_url)
 
 `return_url` is the page the user will be redirected to by the service
-once authorization has been granted. You should also persist the
+once authorization has been granted.
+
+Only after calling ``authentication_url``, can you try to persist the
 consumer object so you can grab the contacts once the user returns:
 
     session[:consumer] = consumer.serialize
 
 Now in the request handler of the return_url above:
 
-    consumer = Contacts.deserialize(session[:consumer])
+    consumer = Contacts::Google.deserialize(session[:consumer])
+    consumer = Contacts::Yahoo.deserialize(session[:consumer])
+    consumer = Contacts::WindowsLive.deserialize(session[:consumer])
+    # OR by parameter:
+    # provider is one of :google, :yahoo, :windows_live
+    consumer = Contacts.deserialize_consumer(provider, session[:consumer])
     if consumer.authorize(params)
       @contacts = consumer.contacts
     else
@@ -101,6 +118,27 @@ What this means:
    redirect the POST from Windows Live to a GET on the original domain. This
    ensures the popup window has the same origin as the opener page, in
    accordance with browser same origin policies.
+
+## Your Own Provider
+
+You're not limited to only Google, Yahoo and WindowsLive. Add your own
+configuration in the .yml
+
+    my_own_provider:
+      appid: lorem
+      secret: ipsum
+
+Create your custom class under ``Contacts`` module before initialization,
+e.g. by modifying your config/initializer/contacts.rb like this
+
+    require 'contacts'
+    module Contacts
+      class MyOwnProvider
+        # ...
+      end
+    end
+    config = YAML.load_file("#{Rails.root}/config/contacts.yml")
+    Contacts.configure(config[Rails.env])
 
 ## Copyright
 

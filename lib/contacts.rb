@@ -7,17 +7,7 @@ module Contacts
 
   def self.configure(configuration)
     configuration.each do |key, value|
-      klass =
-        case key.to_s
-        when 'google'
-          Google
-        when 'yahoo'
-          Yahoo
-        when 'windows_live'
-          WindowsLive
-        else
-          raise ArgumentError, "unknown consumer: #{key}"
-        end
+      klass = self.const_get(key.capitalize.gsub(/_\w/) {|n| n[1].upcase })
       klass.configure(value)
     end
   end
@@ -41,7 +31,7 @@ module Contacts
       klass.deserialize(serialized_data)
   end
 
-  def self.new(name, *args, &block)
+  def self.new_consumer(name, *args, &block)
     klass = consumer_class_for(name) and
       klass.new(*args, &block)
   end
